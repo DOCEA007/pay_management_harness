@@ -43,3 +43,6 @@ next-env.d.ts
 # 1Claw / dotenvx — the private decryption key must NEVER be committed
 .env.keys
 .env.vault
+
+# Local demo workspace data (never ship financial records)
+/.data/

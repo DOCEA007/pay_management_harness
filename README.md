@@ -1,86 +1,86 @@
-# 1Claw Starter Kit
+# LedgerMesh
 
-Build a secure AI chat agent in about 5 minutes. Powered by [1Claw](https://1claw.co).
+**Your finance agent talks to their finance agent. They agree on what's owed, arrange payment, and reconcile both sides.**
 
-## You need
+A hackathon application for the 1Claw ecosystem: a personal finance agent harness connecting people, freelancers, and businesses. Built on the supplied 1Claw Next.js starter.
 
-- **Node.js 22 or newer**. Check with `node -v`. Download it from [nodejs.org](https://nodejs.org).
-- **A 1Claw API key**. Sign up at [1claw.co](https://1claw.co), then create an API key in the dashboard. It starts with `1ck_`.
-- **One of these:**
-  - an OpenAI, Anthropic or Google Gemini API key, **or**
-  - a credit card for 1Claw billing, so you don't need a provider key.
+## Run locally
 
-## Step 1 — Download and install
+Requires Node.js 22 or newer.
 
 ```bash
-git clone https://github.com/1clawAI/1claw-starter-kit.git
-cd 1claw-starter-kit
 npm install
+npm run dev
 ```
 
-## Step 2 — Set up your agent
+Open [localhost:3000](http://localhost:3000). The complete demo runs without credentials. Each browser session gets its own workspace with three representative owners, invoices, spending policies, agent conversations, receipts, and a double-entry ledger. Demo payments move simulated balances only.
+
+```bash
+npm test
+npm run typecheck
+npm run build
+```
+
+With the dev server running, `npm run test:smoke` exercises the full invoice → approval → payment → reconciliation API workflow, exports, duplicate-payment handling, and workspace isolation.
+
+## Try the story
+
+1. Click **Run demo**. Maya's agent sends Acme an invoice for $120 against a recorded $100 quote.
+2. Open the new invoice. The agents verify the quote, identify the discrepancy, and agree on a $100 correction.
+3. Acme's policy routes the amount to owner approval. Review the conversation and approve it.
+4. Initiate payment. In demo mode the harness settles simulated funds and reconciles both owners' books. With the optional Stripe sandbox binding, finish the test checkout and check payment status.
+5. Open the ledger and export the entries. There is one receipt and four balanced ledger entries for the payment.
+
+Also try creating an invoice, selecting the crypto demo rail, changing a spending policy, rejecting an invoice, filtering records, switching owner views, and requesting a finance summary from the assistant.
+
+## What is implemented
+
+- A compact finance workspace with invoice conversations, agent cards, ledger exports, and an expandable spending-policy editor.
+- Per-owner finance agents with a structured request → verification → negotiation → authorization → settlement → reconciliation workflow.
+- Amount correction against the recorded agreement, manual or policy-based authorization, spending caps, and pending-payment reservations.
+- Server-side session isolation and durable local JSON storage, atomic writes, and serialized operations per workspace.
+- Idempotent settlement, payment receipts, balanced entries in both owners' ledgers, audit history, and CSV/JSON exports.
+- Stripe and USDC **demo** payment routes, both usable immediately.
+- Optional real Stripe **sandbox** Checkout integration through 1Claw Execution Intents. Stripe credentials stay in the vault binding.
+- Optional Shroud language interpretation for drafting invoices, plus separate buyer and seller advisory model calls. Financial state transitions remain enforced by code.
+
+## Connect 1Claw
 
 ```bash
 npm run setup
 ```
 
-Answer the questions. Use the arrow keys and press Enter:
+The original starter setup registers a scoped agent, configures Shroud, stores provider credentials in 1Claw, and saves only an encrypted `ONECLAW_AGENT_KEY` in the app environment. Restart the dev server afterwards. Do not add a Stripe key, LLM key, private wallet key, or human `1ck_` key to app env files. Never commit `.env.keys`.
 
-1. Paste your **1Claw API key**
-2. Name your project
-3. Pick a **provider**: OpenAI, Anthropic or Gemini
-4. Pick a **model**. The first one is a good default.
-5. Choose how to pay:
-   - **My own key**: paste your provider API key
-   - **1Claw billing**: a checkout page opens so you can add a card
+With Shroud configured, the assistant can extract a draft invoice from requests such as “Invoice Acme $120 for brand design.” Buyer and seller advisory responses are marked as Shroud messages. The model cannot authorize a payment, execute a payment, or change owner policy. Without Shroud, the assistant uses limited, explicit demo commands and calculated summaries.
 
-When you see **Done!**, you're ready.
+For Stripe sandbox configuration and its required form-body forwarding check, read [the integration guide](docs/INTEGRATIONS.md). Crypto settlement is currently simulated; the application does not broadcast blockchain transactions or claim to implement x402 settlement.
 
-## Step 3 — Run it
+## Project map
 
-```bash
-npm run dev
-```
-
-Open **http://localhost:3000** and start chatting. 🎉
-
----
-
-## Make it yours
-
-| Want to… | Edit this file |
+| Area | Location |
 | --- | --- |
-| Change the agent's personality | `lib/agent.ts` |
-| Give the agent tools | `lib/agent.ts`, then `app/api/chat/route.ts` |
-| Change the chat UI | `components/chat.tsx` |
+| Dashboard and interactions | `components/mesh-dashboard.tsx` |
+| Shared data and action protocol | `lib/mesh/types.ts` |
+| Finance state machine and bookkeeping | `lib/mesh/engine.ts` |
+| Server workspace persistence | `lib/mesh/store.ts` |
+| Input validation | `lib/mesh/validation.ts` |
+| Shroud and Stripe adapters | `lib/mesh/integrations.ts` |
+| Workspace API | `app/api/mesh/route.ts` |
+| Ledger export API | `app/api/mesh/export/route.ts` |
+| Domain verification | `tests/engine.test.ts` |
 
-## How your keys stay safe
+See [architecture and protocol](docs/ARCHITECTURE.md) and [the demo script](docs/DEMO.md).
 
-- Your 1Claw API key is used once during setup and **never saved**.
-- Your LLM key goes into an encrypted 1Claw **vault**, not into this app.
-- The app keeps only one key, for a limited **agent**. It's stored **encrypted** in `.env`.
-- Every chat goes through **1Claw Shroud**, which uses your LLM key without exposing it to the app.
+## Current scope
 
-⚠️ **Never commit or share `.env.keys`.** It unlocks your `.env`. Git already ignores it.
+This is a runnable local hackathon project. Owner switching demonstrates multiple principals inside one browser workspace; it is not independent production identity or authentication. Negotiation uses the agreement recorded with the invoice, not a signed external contract. Agent messages are stored protocol records, not cryptographically authenticated inter-company messages.
 
-## Deploy (optional)
+Storage defaults to `.data/ledgermesh`, ignored by Git. Set the non-secret `LEDGERMESH_DATA_DIR` setting to change the directory. Use one Node process with a persistent writable disk. Multi-instance/serverless deployment requires replacing the file store with transactional shared storage. A production release also needs actual owner authentication, tenant/provider account mapping, provider event processing, and operational recovery for interrupted payments. An expired Stripe checkout is never reconciled as paid; pending provider payments must be resolved before demo reset.
 
-```bash
-npx dotenvx get ONECLAW_AGENT_KEY | npx vercel env add ONECLAW_AGENT_KEY production
-npx vercel deploy --prod
-```
+## References
 
-Anyone with your deployed link can chat and use your LLM credits.
-Set a daily budget for your agent in the 1Claw dashboard before you share it.
-
-## Something broke?
-
-| You see | Do this |
-| --- | --- |
-| `Invalid API key` during setup | Copy your 1Claw API key again and re-run `npm run setup` |
-| `401` in the chat | Re-run `npm run setup` |
-| `402` or `403` | Check your 1Claw plan or billing at [1claw.co/pricing](https://1claw.co/pricing) |
-| `still encrypted` | Start the app with `npm run dev`, not `next dev` |
-| The page says "Bootstrap your agent first" | Run `npm run setup`, then restart `npm run dev` |
-
-Re-running `npm run setup` is always safe. It creates a fresh agent.
+- [1Claw integration guide](https://1claw.co/for-ai)
+- [1Claw execution-intents examples](https://github.com/1clawAI/1claw-examples/tree/main/execution-intents)
+- [Stripe Checkout Session API](https://docs.stripe.com/api/checkout/sessions/create)
+- [Stripe sandbox testing](https://docs.stripe.com/testing)
